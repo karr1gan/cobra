@@ -15,7 +15,7 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: shell
+  - name: golang
     image: golang:1.17
     command:
     - sleep
@@ -26,14 +26,28 @@ spec:
             // container('shell') {
             //     sh 'hostname'
             // }
-            defaultContainer 'shell'
+            defaultContainer 'golang'
         }
     }
     stages {
-        stage('Main') {
+        stage('Download dependencies') {
             steps {
-                sh 'hostname'
+                sh 'echo "display go.mod: " && cat go.mod'
+		sh 'echo "display go.sum: " && cat go.sum'
+		sh 'go get ./...'
             }
+	}
+	stage('Build') {
+            steps {
+                sh 'mkdir ./dist'
+		sh '''CGO_ENABLED=0 go build -o ./dist/cobracli -a -ldflags '-w -extldflags "-static"' ./cobra/main.go'''  
+			// -o zapisz wynik do katalogu ./dist/cobracli
+			// CGO_ENABLED=0 wylacza zaleznosci z jezyka C w GO
+			// -a ==
+			// -ldflags == flagi dla linkera
+			// -w -extldflags "-static"  ==
+                sh 'ls -la ./dist'
+	    }
         }
     }
 }
